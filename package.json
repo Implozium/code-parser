@@ -1,0 +1,22 @@
+{
+  "name": "projet-parser-ts",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "tsc": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "comp": "npx tsc",
+    "exec": "node dist/index.js",
+    "start": "npx tsc && node dist/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^13.9.0",
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "nomnoml": "^0.6.2"
+  }
+}
