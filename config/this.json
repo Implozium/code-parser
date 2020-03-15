@@ -1,0 +1,16 @@
+{
+    "dir": "./",
+    "excludes": [
+        "node_modules",
+        "coverage",
+        "test",
+        "babel",
+        "webpack",
+        "dist"
+    ],
+    "types": ["js", "vue", "jsx", "ts"],
+    "aliases": {
+        "@": "src"
+    },
+    "output": "out/this.svg"
+}

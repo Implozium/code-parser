@@ -36,3 +36,7 @@ export interface IProjectInfo {
         [index: string]: IFileInfo
     },
 }
+
+export interface IDrawer {
+    draw(projectInfo: IProjectInfo, options?: Object): { data: any, type: string }
+}

@@ -1,8 +1,7 @@
 import { promises } from 'fs';
 import * as path from 'path';
-import nomnoml = require('nomnoml');
 
-import { IProjectInfo, IOptions } from './types';
+import { IProjectInfo, IOptions, IDrawer } from './types';
 import DirReader from './DirReader';
 import FileInfo from './FileInfo';
 
@@ -54,10 +53,9 @@ export default class ProjectInfo implements IProjectInfo {
                 return files.reduce((promise, file) => {
                     file = file.replace(/\\/g, '/');
                     return promise
-                        .then(() => new FileInfo(path.resolve(this.options.dir, '.' + file)).init())
-                        .then((fileInfo) => {
-                            fileInfo.file = file;
-                            this.files[file] = fileInfo;
+                        .then(() => promises.readFile(path.resolve(this.options.dir, '.' + file), 'utf-8'))
+                        .then((text) => {
+                            this.files[file] = new FileInfo(file, text);
                         })
                 }, Promise.resolve());
             })
@@ -72,59 +70,16 @@ export default class ProjectInfo implements IProjectInfo {
             .then(() => this)
     }
 
-    draw(): Promise<any> {
-        let output = `
-#arrowSize: 1
-#bendSize: 1
-#fill: #ffffff
-#font: Consolas
-#fontSize: 11
-#lineWidth: 1
-#padding: 4
-#spacing: 32
-#direction: right
-#ranker: longest-path
-#gutter: 150
-#edges: rounded
+    save(file: string): Promise<ProjectInfo> {
+        return Promise.resolve(this);
+    }
 
-#.abstract: fill=#ffffff dashed center bold italic
-            `;
-        const abstracts: string[] = Object.keys(this.files).reduce((abstracts, name) => {
-            const aFileInfo: FileInfo = this.files[name];
-            return abstracts.concat(aFileInfo.imports.filter(imp => !this.files[imp.file]).map(imp => imp.file));
-        }, []);
-        output += '\n';
-        output += abstracts.map(file => `[<abstract> ${file}]`).join('\n');
-        output += '\n';
-        output += Object.keys(this.files).map((name) => {
-            const aFileInfo: FileInfo = this.files[name];
-            let out = `[${aFileInfo.file}|`;
-            if (aFileInfo.exports.default.name || aFileInfo.exports.default.type) {
-                out += `${aFileInfo.exports.default.name || 'default'}:${aFileInfo.exports.default.type}`;
-            }
-            // out += '|\n';
-            // out += aFileInfo.exports.vars.map(v => (v.name[1] || v.name[0]) + ':' + v.type).join(';\n');
-            out += ']\n';
-            aFileInfo.exports.vars.forEach((v) => {
-                out += `[<${v.type}> ${aFileInfo.file}: ${(v.name[1] || v.name[0])}| ${v.type}]\n`;
-                out += `[${aFileInfo.file}: ${(v.name[1] || v.name[0])}] <-o [${aFileInfo.file}]\n`;
-            });
-            aFileInfo.imports.forEach((imp) => {
-                if (imp.default) {
-                    out += `[${aFileInfo.file}] -> [${imp.file}]\n`;
-                }
-                out += imp.vars.map(v => `[${aFileInfo.file}] -> [${this.files[imp.file] ? imp.file + ': ' + v[0] : imp.file}]`).join('\n');
-                out += '\n';
-            });
-            // out += aFileInfo.imports
-            //     .map(imp => `[${aFileInfo.file}] -> [${this.files[imp.file] ? imp.file + ': ' + imp.: imp.file}]`)
-            //     .join('\n');
+    load(file: string): Promise<ProjectInfo> {
+        return Promise.resolve(this);
+    }
 
-            return out;
-        }).join('\n\n');
-
-        console.log(output);
-
-        return promises.writeFile(this.options.output, nomnoml.renderSvg(output), 'utf8');
+    draw(drawer: IDrawer): Promise<any> {
+        const { data, type } = drawer.draw(this);
+        return promises.writeFile(this.options.output, data, type);
     }
 }

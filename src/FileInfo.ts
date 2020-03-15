@@ -1,5 +1,3 @@
-import { promises } from 'fs';
-
 import { IFileInfo, IFileInfoImport, IFileInfoExports } from './types';
 
 export default class FileInfo implements IFileInfo {
@@ -7,8 +5,10 @@ export default class FileInfo implements IFileInfo {
     imports: IFileInfoImport[];
     exports: IFileInfoExports;
 
-    constructor(file: string) {
+    constructor(file: string, text: string) {
         this.file = file;
+        this.imports = this.extractImports(text);
+        this.exports = this.extractExports(text);
     }
 
     protected getVars(str: string): [string, string][] {
@@ -20,11 +20,11 @@ export default class FileInfo implements IFileInfo {
             });
     }
 
-    protected extractImports(str: string): IFileInfoImport[] {
+    protected extractImports(text: string): IFileInfoImport[] {
         const importRegExp = `^ *import +(.+) +from +['"\`]([^'"\`]+)['"\`]`;
-        const parts = str.match(new RegExp(importRegExp, 'gm')) || [];
+        const parts = text.match(new RegExp(importRegExp, 'gm')) || [];
         return parts
-            .map(str => str.match(new RegExp(importRegExp)).slice(1))
+            .map(part => part.match(new RegExp(importRegExp)).slice(1))
             .map(([ importBody, file ]) => {
                 let args: string[] = [];
                 let def: string = '';
@@ -61,7 +61,7 @@ export default class FileInfo implements IFileInfo {
         return 'object';
     }
 
-    protected extractExports(str: string): IFileInfoExports {
+    protected extractExports(text: string): IFileInfoExports {
         const exportRegExp = `^ *export +(.+)`;
         const result: IFileInfoExports = {
             default: {
@@ -70,10 +70,10 @@ export default class FileInfo implements IFileInfo {
             },
             vars: []
         };
-        const parts = str.match(new RegExp(exportRegExp, 'gm')) || [];
+        const parts = text.match(new RegExp(exportRegExp, 'gm')) || [];
         parts
-            .forEach((str) => {
-                const exports = str.match(new RegExp(exportRegExp))[1];
+            .forEach((part) => {
+                const exports = part.match(new RegExp(exportRegExp))[1];
                 let args: string[] = [];
                 if (args = exports.match(/default +(var|let|const|class|function|function\*|interface|type)? *([^\( ]+)/)) {
                     result.default.name = !args[1] ? '' : args[2];
@@ -86,14 +86,5 @@ export default class FileInfo implements IFileInfo {
                 }
             });
         return result;
-    }
-
-    public init(): Promise<FileInfo> {
-        return promises.readFile(this.file, 'utf-8')
-            .then((text) => {
-                this.imports = this.extractImports(text),
-                this.exports = this.extractExports(text)
-                return this;
-            });
     }
 }
