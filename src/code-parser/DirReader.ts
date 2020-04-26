@@ -1,13 +1,18 @@
 import { promises } from 'fs';
 import * as path from 'path';
 
-import { IOptions } from './types';
+import Options from '../Options';
 
 export default class DirReader {
-    private options: IOptions;
+    private options: Required<Options>;
 
-    constructor(options: IOptions) {
-        this.options = options;
+    constructor(options: Options) {
+        this.options = {
+            excludes: [],
+            aliases: {},
+            types: [],
+            ...options,
+        };
     }
 
     readdir(dir: string): Promise<string[]> {

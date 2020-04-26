@@ -1,18 +1,25 @@
 import { promises } from 'fs';
 import * as path from 'path';
 
-import { IProjectInfo, IOptions, IDrawer } from './types';
+import { ProjectInfo } from './types';
+import Options from '../Options';
+import Drawer from '../drawers/Drawer';
 import DirReader from './DirReader';
 import FileInfo from './FileInfo';
 
-export default class ProjectInfo implements IProjectInfo {
-    private options: IOptions;
+export default class FileProjectInfo implements ProjectInfo {
+    private options: Required<Options>;
     private dirReader: DirReader;
 
-    files = {};
+    files: { [index: string]: FileInfo } = {};
 
-    constructor(options: IOptions) {
-        this.options = options;
+    constructor(options: Options) {
+        this.options = {
+            excludes: [],
+            types: [],
+            aliases: {},
+            ...options,
+        };
         this.dirReader = new DirReader(options);
     }
 
@@ -47,10 +54,10 @@ export default class ProjectInfo implements IProjectInfo {
         return name;
     }
 
-    init(): Promise<ProjectInfo> {
+    init(): Promise<this> {
         return this.dirReader.getFiles()
             .then((files) => {
-                return files.reduce((promise, file) => {
+                return files.reduce((promise: Promise<any>, file) => {
                     file = file.replace(/\\/g, '/');
                     return promise
                         .then(() => promises.readFile(path.resolve(this.options.dir, '.' + file), 'utf-8'))
@@ -70,15 +77,15 @@ export default class ProjectInfo implements IProjectInfo {
             .then(() => this)
     }
 
-    save(file: string): Promise<ProjectInfo> {
+    save(file: string): Promise<this> {
         return Promise.resolve(this);
     }
 
-    load(file: string): Promise<ProjectInfo> {
+    load(file: string): Promise<this> {
         return Promise.resolve(this);
     }
 
-    draw(drawer: IDrawer): Promise<any> {
+    draw(drawer: Drawer): Promise<any> {
         const { data, type } = drawer.draw(this);
         return promises.writeFile(this.options.output, data, type);
     }

@@ -1,9 +1,9 @@
 import { promises, existsSync } from 'fs';
 
-import { IOptions } from "./types";
+import Options from "./Options";
 
 export default class Config {
-    load(file: string): Promise<IOptions> {
+    load(file: string): Promise<Options> {
         if (!existsSync(file)) {
             return Promise.reject(new Error(`File "${file}" is not found`));
         }

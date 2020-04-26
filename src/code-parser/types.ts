@@ -1,4 +1,4 @@
-export type IOptions = {
+export type Options = {
     dir: string,
     excludes?: string[],
     types?: string[],
@@ -8,14 +8,14 @@ export type IOptions = {
     output: string,
 }
 
-export interface IFileInfoImport {
+export interface BlockInfoImport {
     file: string,
     default?: string,
     vars: [string, string][]
 }
 
-export interface IFileInfoExports {
-    default?: {
+export interface BlockInfoExports {
+    default: {
         type: string,
         name: string,
     },
@@ -25,18 +25,14 @@ export interface IFileInfoExports {
     }[]
 }
 
-export interface IFileInfo {
+export interface BlockInfo {
     file: string,
-    imports: IFileInfoImport[],
-    exports: IFileInfoExports,
+    imports: BlockInfoImport[],
+    exports: BlockInfoExports,
 }
 
-export interface IProjectInfo {
+export interface ProjectInfo {
     files: {
-        [index: string]: IFileInfo
+        [index: string]: BlockInfo
     },
-}
-
-export interface IDrawer {
-    draw(projectInfo: IProjectInfo, options?: Object): { data: any, type: string }
 }

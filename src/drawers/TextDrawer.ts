@@ -1,21 +1,22 @@
-import { IProjectInfo, IFileInfo, IDrawer } from './types';
+import { ProjectInfo, BlockInfo } from '../code-parser/types';
+import Drawer from '../drawers/Drawer';
 
-export default class Drawer implements IDrawer {
+export default class TextDrawer implements Drawer {
 
     constructor() {
     }
 
-    draw(projectInfo: IProjectInfo, options?: Object): { data: any, type: string } {
+    draw(projectInfo: ProjectInfo, options?: { [index: string]: any }): { data: any, type: string } {
         let output = '';
-        const abstracts: string[] = Object.keys(projectInfo.files).reduce((abstracts, name) => {
-            const aFileInfo: IFileInfo = projectInfo.files[name];
+        const abstracts: string[] = Object.keys(projectInfo.files).reduce((abstracts: string[], name) => {
+            const aFileInfo: BlockInfo = projectInfo.files[name];
             return abstracts.concat(aFileInfo.imports.filter(imp => !projectInfo.files[imp.file]).map(imp => imp.file));
         }, []);
         output += '\n';
         output += abstracts.map(file => `[<abstract> ${file}]`).join('\n');
         output += '\n';
         output += Object.keys(projectInfo.files).map((name) => {
-            const aFileInfo: IFileInfo = projectInfo.files[name];
+            const aFileInfo: BlockInfo = projectInfo.files[name];
             let out = `[${aFileInfo.file}|`;
             if (aFileInfo.exports.default.name || aFileInfo.exports.default.type) {
                 out += `${aFileInfo.exports.default.name || 'default'}:${aFileInfo.exports.default.type}`;
