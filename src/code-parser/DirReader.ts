@@ -1,18 +1,15 @@
 import { promises } from 'fs';
 import * as path from 'path';
 
-import Options from '../Options';
-
 export default class DirReader {
-    private options: Required<Options>;
+    private dir: string;
+    private excludes: string[];
+    private types: string[];
 
-    constructor(options: Options) {
-        this.options = {
-            excludes: [],
-            aliases: {},
-            types: [],
-            ...options,
-        };
+    constructor(dir: string, excludes: string[], types: string[]) {
+        this.dir = dir;
+        this.excludes = excludes;
+        this.types = types;
     }
 
     readdir(dir: string): Promise<string[]> {
@@ -24,13 +21,13 @@ export default class DirReader {
         return this.readdir(dir)
             .then((files) => {
                 return files
-                    .filter(file => this.options.excludes.every(path => !file.includes(path)))
+                    .filter(file => this.excludes.every(path => !file.includes(path)))
                     .reduce((promise, file) => {
                         return promise
                             .then(() => promises.stat(file))
                             .then((stat) => {
                                 if (!stat.isDirectory()) {
-                                    if (this.options.types.some(type => file.endsWith(type))) {
+                                    if (this.types.some(type => file.endsWith(type))) {
                                         outfiles.push(file);
                                     }
                                     return;
@@ -43,7 +40,7 @@ export default class DirReader {
 
     getFiles(): Promise<string[]> {
         const files: string[] = [];
-        return this.collectFiles(this.options.dir, files)
-            .then(() => files.map(file => file.replace(path.resolve(this.options.dir), '')));
+        return this.collectFiles(this.dir, files)
+            .then(() => files.map(file => file.replace(path.resolve(this.dir), '')));
     }
 }

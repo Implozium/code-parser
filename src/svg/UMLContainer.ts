@@ -1,29 +1,11 @@
 import SVGContainer, { MarkerTypes, ArcDirections, Point, Dimention, SVGStyle } from "./SVGContainer";
 import { hash } from "./common";
-import { Project, Ref, PresetedValue } from "../Project";
+import { Project, Ref, PresetedValue, Preset, Block, Part } from "../Project";
 
 interface UMLContainerOptions {
     blockWidth?: number;
     blockMergeVer?: number;
     blockMergeHor?: number;
-}
-
-export interface BlockItems {
-    title: string;
-    items: PresetedValue[];
-}
-
-interface BlockRef {
-    text?: string;
-    start?: MarkerTypes;
-    end?: MarkerTypes;
-    to: PresetedValue;
-}
-
-interface Block {
-    title: PresetedValue;
-    blocks: BlockItems[];
-    refs: BlockRef[];
 }
 
 interface BlocksInfo {
@@ -44,13 +26,6 @@ enum Directions {
     right = 'right',
     top = 'top',
     bottom = 'bottom',
-}
-
-export interface Preset {
-    fill?: string;
-    border?: string;
-    color?: string;
-    [propName: string]: any;
 }
 
 interface CalcedPreset {
@@ -104,8 +79,8 @@ export default class UMLContainer {
         return calced;
     }
 
-    protected getBlockHeight(blocks: BlockItems[]): number {
-        return (this.svg.getFontHeight() + blocks.reduce((sum, block) => sum + block.items.length * this.svg.getFontHeight() + (block.title ? this.svg.getFontHeight(0.9) : 0), 0));
+    protected getBlockHeight(parts: Part[]): number {
+        return (this.svg.getFontHeight() + parts.reduce((sum, part) => sum + part.items.length * this.svg.getFontHeight() + (part.name ? this.svg.getFontHeight(0.9) : 0), 0));
     }
 
     protected makeClassesForBlock(name: string, inBlocks: string[], outBlocks: string[]): string {
@@ -116,7 +91,7 @@ export default class UMLContainer {
         ].filter(Boolean).join(' ');
     }
 
-    protected block(p: Point, name: PresetedValue, blocks: BlockItems[], inBlocks: string[], outBlocks: string[]): this {
+    protected block(p: Point, name: PresetedValue, parts: Part[], inBlocks: string[], outBlocks: string[]): this {
         let text = '';
         while (this.svg.getTextLength(text + '_') < this.options.blockWidth) {
             text += '_';
@@ -132,15 +107,15 @@ export default class UMLContainer {
         const namePreset = this.calcPreset(name.presets);
         this.svg.rect({ x: p.x, y: cy - line, width: this.options.blockWidth, height: line }, { style: { ...namePreset.rect, 'stroke': 'none' } });
         this.svg.text({ x: p.x, y: cy }, name.value.slice(-text.length), { style: { 'font-weight': 'bold', ...namePreset.text } });
-        if (blocks.length) {
-            blocks.forEach((block) => {
-                if (block.title) {
+        if (parts.length) {
+            parts.forEach((part) => {
+                if (part.name) {
                     cy = cy + shortLine;
                     this.svg.rect({ x: p.x, y: cy - shortLine, width: this.options.blockWidth, height: shortLine }, { style: { 'stroke': 'none', fill: '#fff' } });
-                    this.svg.text({ x: p.x, y: cy }, block.title.slice(-shortText.length), { style: { fill: '#555', 'font-weight': 'bold', 'text-decoration': 'underline' } }, 0.9);
+                    this.svg.text({ x: p.x, y: cy }, part.name.slice(-shortText.length), { style: { fill: '#555', 'font-weight': 'bold', 'text-decoration': 'underline' } }, 0.9);
                     this.svg.line({ x: p.x, y: cy - shortLine }, { x: p.x + this.options.blockWidth, y: cy - shortLine }, { style: namePreset.rect });
                 }
-                block.items.forEach((pvalue, i) => {
+                part.items.forEach((pvalue, i) => {
                     if (i > 0) {
                         this.svg.line({ x: p.x, y: cy }, { x: p.x + this.options.blockWidth, y: cy }, { style: { ...namePreset.rect, 'stroke-dasharray': '4 4' } });
                     }
@@ -149,10 +124,10 @@ export default class UMLContainer {
                     this.svg.rect({ x: p.x, y: cy - line, width: this.options.blockWidth, height: line }, { style: { ...preset.rect, 'stroke': 'none' } });
                     this.svg.text({ x: p.x, y: cy }, pvalue.value.slice(-text.length), { style: preset.text });
                 });
-                this.svg.line({ x: p.x, y: cy - block.items.length * line }, { x: p.x + this.options.blockWidth, y: cy - block.items.length * line }, { style: namePreset.rect });
+                this.svg.line({ x: p.x, y: cy - part.items.length * line }, { x: p.x + this.options.blockWidth, y: cy - part.items.length * line }, { style: namePreset.rect });
             });
         }
-        this.svg.rect({ x: p.x, y: p.y, width: this.options.blockWidth, height: this.getBlockHeight(blocks) }, { style: { ...namePreset.rect, 'fill': 'none' } });
+        this.svg.rect({ x: p.x, y: p.y, width: this.options.blockWidth, height: this.getBlockHeight(parts) }, { style: { ...namePreset.rect, 'fill': 'none' } });
         this.svg.groupEnd();
         return this;
     }
@@ -171,24 +146,43 @@ export default class UMLContainer {
         return this.refs.filter(ref => ref.from === from);
     }
 
+    getMarkerTypesByValue(value?: string): MarkerTypes | undefined {
+        switch (value) {
+            case '*':
+                return MarkerTypes.circle;
+            case '0':
+                return MarkerTypes.circleEmpty;
+            case '+':
+                return MarkerTypes.diamond;
+            case 'o':
+                return MarkerTypes.diamondEmpty;
+            case '>':
+            case '<':
+                return MarkerTypes.triangle;
+            case ':>':
+            case '<:':
+                return MarkerTypes.triangleEmpty;
+        }
+    }
+
     extractInfo(): BlocksInfo {
         const info: BlocksInfo = {};
         this.blocks.forEach((block) => {
-            if (!info[block.title.value]) {
-                info[block.title.value] = {
-                    title: block.title.value,
+            if (!info[block.name]) {
+                info[block.name] = {
+                    title: block.name,
                     block,
-                    out: block.refs.map(({ to }) => to.value),
+                    out: this.getRefs(block.name).map(({ to }) => to),
                     in: [],
                 }
             } else {
-                info[block.title.value].block = block;
-                info[block.title.value].out = block.refs.map(({ to }) => to.value);
+                info[block.name].block = block;
+                info[block.name].out = this.getRefs(block.name).map(({ to }) => to);
             }
-            block.refs.forEach((ref) => {
-                if (!info[ref.to.value]) {
-                    info[ref.to.value] = {
-                        title: ref.to.value,
+            this.getRefs(block.name).forEach((ref) => {
+                if (!info[ref.to]) {
+                    info[ref.to] = {
+                        title: ref.to,
                         block: undefined,
                         out: [],
                         in: [],
@@ -197,8 +191,8 @@ export default class UMLContainer {
             });
         });
         this.blocks.forEach((block) => {
-            block.refs.forEach((ref) => {
-                info[ref.to.value].in.push(block.title.value);
+            this.getRefs(block.name).forEach((ref) => {
+                info[ref.to].in.push(block.name);
             });
         });
         return info;
@@ -215,7 +209,7 @@ export default class UMLContainer {
         });
         const order = Object.keys(cond).map(Number).sort((a, b) => a - b).map(key => cond[key]);
         for (let i = 0; i < order.length; i++) {
-            const refs: string[] = order[i].reduce((arr: string[], name: string) => arr.concat(info[name].block?.refs.map(({ to }) => to.value) ?? []), []);
+            const refs: string[] = order[i].reduce((arr: string[], name: string) => arr.concat(this.getRefs(info[name].block?.name ?? '').map(({ to }) => to) ?? []), []);
             for (let j = i + 1, length = order.length; j < length; j++) {
                 const unfound: string[] = order[j].filter(name => !refs.includes(name));
                 if (j - 1 !== i) {
@@ -251,7 +245,7 @@ export default class UMLContainer {
         while (currents.length) {
             const added = currents
                 .reduce((arr: string[], key: string) => {
-                    return arr.concat(info[key].block?.refs.map(({ to }) => to.value) ?? []);
+                    return arr.concat(this.getRefs(info[name].block?.name ?? '').map(({ to }) => to) ?? []);
                 }, [])
                 .filter((key, i, arr) => !has.includes(key) && arr.indexOf(key) === i);
             has.push(...added);
@@ -309,9 +303,9 @@ export default class UMLContainer {
                     y: height,
                     x: i * (this.options.blockWidth + this.options.blockMergeHor) + (j % 2 === 0 ? this.options.blockMergeHor / 4 : 0),
                     width: this.options.blockWidth,
-                    height: this.getBlockHeight(info[key].block?.blocks ?? []),
+                    height: this.getBlockHeight(info[key].block?.parts ?? []),
                 };
-                height += this.getBlockHeight(info[key].block?.blocks ?? []) + this.options.blockMergeVer;
+                height += this.getBlockHeight(info[key].block?.parts ?? []) + this.options.blockMergeVer;
             });
         });
 
@@ -386,11 +380,11 @@ export default class UMLContainer {
         Object.keys(info).forEach((key) => {
             const block = info[key].block;
             if (block !== undefined) {
-                const title = block.title;
-                block.refs.forEach((ref) => {
-                    const [from, to] = this.getDirection(layout[title.value], layout[ref.to.value]);
-                    lines[title.value][from].count++;
-                    lines[ref.to.value][to].count++;
+                const title = block.name;
+                this.getRefs(block.name).forEach((ref) => {
+                    const [from, to] = this.getDirection(layout[title], layout[ref.to]);
+                    lines[title][from].count++;
+                    lines[ref.to][to].count++;
                 });
             }
         });
@@ -404,22 +398,22 @@ export default class UMLContainer {
                 level.filter((el, j) => j % arr.length === k && el).forEach((key) => {
                     const block = info[key].block;
                     if (block !== undefined) {
-                        const title = block.title;
-                        block.refs.forEach((ref) => {
-                            const [from, to] = this.getDirection(layout[title.value], layout[ref.to.value]);
-                            const pFrom = this.getLinePosition(layout[title.value], lines[title.value][from].i, lines[title.value][from].count, from, false);
-                            const pTo = this.getLinePosition(layout[ref.to.value], lines[ref.to.value][to].j, lines[ref.to.value][to].count, to, true);
-                            const preset = this.calcPreset(ref.to.presets);
-                            this.svg.curv(pFrom, pTo, { start: ref.start, end: ref.end, text: ref.text, from: ArcDirections[from], to: ArcDirections[to], className: this.makeClassesForBlock('', [title.value], [ref.to.value]), style: preset.line });
-                            lines[title.value][from].i++;
-                            lines[ref.to.value][to].j++;
+                        const title = block.name;
+                        this.getRefs(block.name).forEach((ref) => {
+                            const [from, to] = this.getDirection(layout[title], layout[ref.to]);
+                            const pFrom = this.getLinePosition(layout[title], lines[title][from].i, lines[title][from].count, from, false);
+                            const pTo = this.getLinePosition(layout[ref.to], lines[ref.to][to].j, lines[ref.to][to].count, to, true);
+                            const preset = this.calcPreset(ref.presets);
+                            this.svg.curv(pFrom, pTo, { start: this.getMarkerTypesByValue(ref.markerFrom), end: this.getMarkerTypesByValue(ref.markerTo), text: ref.text, from: ArcDirections[from], to: ArcDirections[to], className: this.makeClassesForBlock('', [title], [ref.to]), style: preset.line });
+                            lines[title][from].i++;
+                            lines[ref.to][to].j++;
                         });
                     }
                 });
             });
         }
         Object.keys(layout).forEach((key) => {
-            this.block({ x: layout[key].x, y: layout[key].y }, { value: info[key].title, presets: info[key].block?.title.presets || [] }, info[key].block?.blocks ?? [], info[key].in, info[key].out);
+            this.block({ x: layout[key].x, y: layout[key].y }, { value: info[key].title, presets: info[key].block?.presets || [] }, info[key].block?.parts ?? [], info[key].in, info[key].out);
         });
     }
 
@@ -436,9 +430,12 @@ export default class UMLContainer {
         Object.keys(project.presets).forEach((preset) => {
             this.addPreset(preset, project.presets[preset]);
         });
-        // project.blocks.forEach((block) => {
-        //     this.addBlock(block);
-        // });
+        project.blocks.forEach((block) => {
+            this.addBlock(block);
+        });
+        project.refs.forEach((ref) => {
+            this.addRef(ref);
+        });
 
         return this.make(project.title);
     }

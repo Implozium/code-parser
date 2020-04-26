@@ -2,14 +2,13 @@ import { promises } from 'fs';
 import * as path from 'path';
 
 import { ProjectInfo } from './types';
-import Options from '../Options';
-import Drawer from '../drawers/Drawer';
 import DirReader from './DirReader';
 import FileInfo from './FileInfo';
+import Options from '../Options';
 
 export default class FileProjectInfo implements ProjectInfo {
-    private options: Required<Options>;
     private dirReader: DirReader;
+    options: Required<Options>;
 
     files: { [index: string]: FileInfo } = {};
 
@@ -20,7 +19,7 @@ export default class FileProjectInfo implements ProjectInfo {
             aliases: {},
             ...options,
         };
-        this.dirReader = new DirReader(options);
+        this.dirReader = new DirReader(this.options.dir, this.options.excludes, this.options.types);
     }
 
     resolveFileName(name: string, file: string): string {
@@ -83,10 +82,5 @@ export default class FileProjectInfo implements ProjectInfo {
 
     load(file: string): Promise<this> {
         return Promise.resolve(this);
-    }
-
-    draw(drawer: Drawer): Promise<any> {
-        const { data, type } = drawer.draw(this);
-        return promises.writeFile(this.options.output, data, type);
     }
 }

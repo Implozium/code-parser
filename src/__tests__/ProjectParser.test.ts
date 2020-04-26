@@ -316,7 +316,7 @@ describe('extractRefs', () => {
                 to: 'b',
                 text: '',
                 markerFrom: '',
-                markerEnd: '',
+                markerTo: '',
                 presets: [],
             }
         ]);
@@ -330,7 +330,7 @@ describe('extractRefs', () => {
                 to: 'b',
                 text: 'text',
                 markerFrom: '',
-                markerEnd: '',
+                markerTo: '',
                 presets: [],
             }
         ]);
@@ -344,7 +344,7 @@ describe('extractRefs', () => {
                 to: 'b',
                 text: '',
                 markerFrom: '',
-                markerEnd: '',
+                markerTo: '',
                 presets: ['+', '-'],
             }
         ]);
@@ -358,7 +358,7 @@ describe('extractRefs', () => {
                 to: 'b',
                 text: '',
                 markerFrom: '<',
-                markerEnd: '>',
+                markerTo: '>',
                 presets: [],
             }
         ]);
@@ -372,7 +372,7 @@ describe('extractRefs', () => {
                 to: 'b',
                 text: 'text',
                 markerFrom: '<',
-                markerEnd: '>',
+                markerTo: '>',
                 presets: ['+', '-'],
             }
         ]);
@@ -389,7 +389,7 @@ describe('extractRefs', () => {
                 to: 'b',
                 text: 'text',
                 markerFrom: '<',
-                markerEnd: '>',
+                markerTo: '>',
                 presets: ['+', '-'],
             },
             {
@@ -397,7 +397,7 @@ describe('extractRefs', () => {
                 to: 'c',
                 text: 'text',
                 markerFrom: '<',
-                markerEnd: '>',
+                markerTo: '>',
                 presets: ['+', '-'],
             }
         ]);
@@ -481,7 +481,7 @@ describe('parse', () => {
                     to: 'b',
                     text: '',
                     markerFrom: '',
-                    markerEnd: '',
+                    markerTo: '',
                     presets: [],
                 },
                 {
@@ -489,7 +489,7 @@ describe('parse', () => {
                     to: 'b',
                     text: '',
                     markerFrom: '*',
-                    markerEnd: '>',
+                    markerTo: '>',
                     presets: [],
                 }
             ]

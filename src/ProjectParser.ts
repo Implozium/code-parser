@@ -45,13 +45,13 @@ export default class ProjectParser {
         // console.log(matched);
         const refs: Ref[] = matched.map((row) => {
             // console.log(row.match(regexp));
-            const [, from = '', presets = '', text = '', markerFrom = '', markerEnd = '', to = ''] = row.match(regexp) ?? [];
+            const [, from = '', presets = '', text = '', markerFrom = '', markerTo = '', to = ''] = row.match(regexp) ?? [];
             return {
                 from,
                 to,
                 text,
                 markerFrom,
-                markerEnd,
+                markerTo,
                 presets: presets.length ? presets.split('|').map(str => str.trim()) : [],
             };
 

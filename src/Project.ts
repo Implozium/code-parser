@@ -8,7 +8,7 @@ export interface Ref {
     to: string;
     text?: string;
     markerFrom?: string;
-    markerEnd?: string;
+    markerTo?: string;
     presets: string[];
 }
 
@@ -23,10 +23,15 @@ export interface Block {
     parts: Part[];
 }
 
+export interface Preset {
+    fill?: string;
+    border?: string;
+    color?: string;
+    [propName: string]: any;
+}
+
 export interface Presets {
-    [index: string]: {
-        [index: string]: string;
-    };
+    [index: string]: Preset;
 }
 
 export interface Project {

@@ -1,5 +1,5 @@
-import { ProjectInfo } from "../code-parser/types";
+import { Project } from "../Project";
 
 export default interface Drawer {
-    draw(projectInfo: ProjectInfo, options?: { [index: string]: any }): { data: any, type: string }
+    draw(project: Project, options?: { [index: string]: any }): { data: any, type: string, extension: string }
 }

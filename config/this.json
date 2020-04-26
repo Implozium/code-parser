@@ -12,5 +12,5 @@
     "aliases": {
         "@": "src"
     },
-    "output": "out/this.svg"
+    "output": "out/this"
 }

@@ -1,46 +1,47 @@
-import { ProjectInfo, BlockInfo } from '../code-parser/types';
 import Drawer from '../drawers/Drawer';
+import { Project } from '../Project';
 
 export default class TextDrawer implements Drawer {
 
     constructor() {
     }
 
-    draw(projectInfo: ProjectInfo, options?: { [index: string]: any }): { data: any, type: string } {
+    draw(project: Project, options?: { [index: string]: any }): { data: any, type: string, extension: string } {
         let output = '';
-        const abstracts: string[] = Object.keys(projectInfo.files).reduce((abstracts: string[], name) => {
-            const aFileInfo: BlockInfo = projectInfo.files[name];
-            return abstracts.concat(aFileInfo.imports.filter(imp => !projectInfo.files[imp.file]).map(imp => imp.file));
-        }, []);
+        // add presets
+        const abstracts: string[] = project.refs
+            .filter(ref => !project.blocks.find(block => block.name === ref.to))
+            .map(ref => ref.to)
+            .filter((name, i, arr) => arr.indexOf(name) === i);
         output += '\n';
         output += abstracts.map(file => `[<abstract> ${file}]`).join('\n');
         output += '\n';
-        output += Object.keys(projectInfo.files).map((name) => {
-            const aFileInfo: BlockInfo = projectInfo.files[name];
-            let out = `[${aFileInfo.file}|`;
-            if (aFileInfo.exports.default.name || aFileInfo.exports.default.type) {
-                out += `${aFileInfo.exports.default.name || 'default'}:${aFileInfo.exports.default.type}`;
-            }
-            // out += '|\n';
-            // out += aFileInfo.exports.vars.map(v => (v.name[1] || v.name[0]) + ':' + v.type).join(';\n');
-            out += ']\n';
-            aFileInfo.exports.vars.forEach((v) => {
-                out += `[<${v.type}> ${aFileInfo.file}: ${(v.name[1] || v.name[0])}| ${v.type}]\n`;
-                out += `[${aFileInfo.file}: ${(v.name[1] || v.name[0])}] <-o [${aFileInfo.file}]\n`;
-            });
-            aFileInfo.imports.forEach((imp) => {
-                if (imp.default) {
-                    out += `[${aFileInfo.file}] -> [${imp.file}]\n`;
-                }
-                out += imp.vars.map(v => `[${aFileInfo.file}] -> [${projectInfo.files[imp.file] ? imp.file + ': ' + v[0] : imp.file}]`).join('\n');
-                out += '\n';
-            });
-            return out;
-        }).join('\n\n');
+        output += project.blocks
+            .map((block) => {
+                let out = `[${block.name}`;
+                block.parts.forEach((part) => {
+                    out += '|';
+                    if (part.name) {
+                        out += `{${part.name}} `;
+                    }
+                    out += part.items.map((item) => `${item.presets.length ? `<${item.presets.join('|')}> ` : ''}${item.value}`).join('; ');
+                });
+                out += ']';
+                return out;
+            })
+            .join('\n');
+        output += '\n';
+        output += project.refs
+            .map((ref) => {
+                let out = `[${ref.from}] ${ref.text ? `${ref.text} ` : ''}${ref.presets.length ? `<${ref.presets.join('|')}>`: ''}${ref.markerFrom}-${ref.markerTo} [${ref.to}]`;
+                return out;
+            })
+            .join('\n');
 
         return {
             data: output,
-            type: 'utf8'
+            type: 'utf8',
+            extension: 'txt',
         };
     }
 }
